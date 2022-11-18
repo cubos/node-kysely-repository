@@ -1,0 +1,38 @@
+name: "spec"
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - 14
+          - 16
+          - 18
+        postgres:
+          - 12-alpine
+          - 13-alpine
+          - 14-alpine
+          - 15-alpine
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - run: npx tsc -noEmit
+      - run: npm run eslint:check
+      - run: npm test
